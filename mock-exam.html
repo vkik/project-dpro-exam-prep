@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project DPro Mock Exam</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Layout: a single exam column (max 760px) — header bar, question card, answer palette below; results replace the card. */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --ink:#18232f; --muted:#5a6773; --line:#d9dfe5;
+  --accent:#1f5f8b; --accent-soft:#e3eef6;
+  --ok:#1e7a4c; --ok-soft:#e2f3ea; --bad:#b3372e; --bad-soft:#f9e5e3; --flag:#a86b00; --flag-soft:#fbf0d9;
+  --font-body:"IBM Plex Sans", "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11171d; --surface:#19222b; --ink:#e6ecf1; --muted:#9aa8b4; --line:#2c3845;
+    --accent:#6fb0dd; --accent-soft:#1b3346;
+    --ok:#5cc28d; --ok-soft:#173326; --bad:#ef8a80; --bad-soft:#3a1f1d; --flag:#e6b14f; --flag-soft:#3a2d12;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11171d; --surface:#19222b; --ink:#e6ecf1; --muted:#9aa8b4; --line:#2c3845;
+  --accent:#6fb0dd; --accent-soft:#1b3346;
+  --ok:#5cc28d; --ok-soft:#173326; --bad:#ef8a80; --bad-soft:#3a1f1d; --flag:#e6b14f; --flag-soft:#3a2d12;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.25}
+h1{font-size:1.5rem;font-weight:700}
+h2{font-size:1.2rem;font-weight:600}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px}
+.muted{color:var(--muted)}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:16px 0}
+.fact{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.fact b{display:block;font-size:1.3rem;font-family:var(--font-mono)}
+.fact span{font-size:.8rem;color:var(--muted)}
+@media (max-width:520px){.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.modes{display:flex;flex-direction:column;gap:8px;margin:12px 0 16px}
+.mode{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer}
+.mode input{margin-top:4px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 16px;min-height:44px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+:root[data-theme="dark"] button.primary{color:#0e1720}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.primary{color:#0e1720}}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,.opt:focus-within,.mode:focus-within{outline:3px solid var(--accent);outline-offset:2px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);width:0}
+.area{font-size:.78rem;font-weight:600;letter-spacing:.02em;color:var(--accent);text-transform:uppercase}
+.qtext{font-size:1.08rem;font-weight:500;margin:8px 0 16px}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:12px;cursor:pointer;background:var(--surface)}
+.opt input{position:absolute;opacity:0;pointer-events:none}
+.opt .key{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-weight:600;font-size:.9rem}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt.sel .key{background:var(--accent);border-color:var(--accent);color:#fff}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.right .key{background:var(--ok);border-color:var(--ok);color:#fff}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.opt.wrong .key{background:var(--bad);border-color:var(--bad);color:#fff}
+.explain{margin-top:14px;border-radius:8px;padding:12px 14px;background:var(--accent-soft);font-size:.95rem}
+.explain b{display:block;margin-bottom:2px}
+.nav{display:flex;justify-content:space-between;gap:8px;margin-top:16px;flex-wrap:wrap}
+.nav button{flex:1 1 0;padding:10px 8px}
+.palette{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px}
+.palette button{min-height:40px;padding:0;font-family:var(--font-mono);font-size:.85rem}
+.palette .ans{background:var(--accent-soft);border-color:var(--accent)}
+.palette .cur{outline:2px solid var(--ink);outline-offset:1px}
+.palette .flg{border-color:var(--flag);background:var(--flag-soft)}
+.palette .r{background:var(--ok-soft);border-color:var(--ok)}
+.palette .w{background:var(--bad-soft);border-color:var(--bad)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin-top:10px}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;border:1px solid var(--line)}
+.legend .l1::before{background:var(--accent-soft);border-color:var(--accent)}
+.legend .l2::before{background:var(--flag-soft);border-color:var(--flag)}
+.score{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.big{font-family:var(--font-mono);font-size:2.6rem;line-height:1}
+.pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.85rem;font-weight:600}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.flag{background:var(--flag-soft);color:var(--flag)}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+td.num,th.num{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.bar{height:8px;background:var(--line);border-radius:4px;min-width:60px;position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.review{display:flex;flex-direction:column;gap:12px}
+.ritem{border:1px solid var(--line);border-left-width:1px;border-radius:8px;padding:12px 14px}
+.ritem .head{display:flex;justify-content:space-between;gap:8px;font-size:.85rem;color:var(--muted)}
+.ritem p{margin:6px 0}
+.ans-line{font-size:.93rem}
+.hidden{display:none !important}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<section id="start" class="card" aria-labelledby="t-start">
+  <h1 id="t-start">Project DPro Foundation mock exam</h1>
+  <p class="muted">75 multiple-choice questions written from the Project DPro Guide, 2nd Edition, weighted like the syllabus. Every answer comes with an explanation and the Guide section to reread.</p>
+  <div class="facts">
+    <div class="fact"><b>75</b><span>questions</span></div>
+    <div class="fact"><b>49</b><span>to pass (65%)</span></div>
+    <div class="fact"><b>60</b><span>your target (80%)</span></div>
+    <div class="fact"><b>0</b><span>negative marking</span></div>
+  </div>
+  <h2>Choose a mode</h2>
+  <div class="modes" role="radiogroup" aria-label="Exam mode">
+    <label class="mode"><input type="radio" name="mode" id="mode-exam" value="exam" checked><span><b>Exam mode.</b> No feedback until you submit, like the real exam. Use this to measure readiness.</span></label>
+    <label class="mode"><input type="radio" name="mode" id="mode-practice" value="practice"><span><b>Practice mode.</b> See the right answer and explanation after each question. Use this while studying.</span></label>
+  </div>
+  <label class="row" for="shuffle" style="margin-bottom:16px"><input type="checkbox" id="shuffle" checked> Shuffle question order</label>
+  <div class="row">
+    <button class="primary" id="btn-start">Start the exam</button>
+    <button id="btn-resume" class="hidden">Resume saved attempt</button>
+  </div>
+  <p class="muted" id="last" style="margin-bottom:0"></p>
+  <p style="margin:12px 0 0"><a href="index.html">Back to the reader</a></p>
+</section>
+
+<section id="exam" class="hidden" aria-live="polite">
+  <div class="card">
+    <div class="topbar">
+      <span class="mono" id="counter">Question 1 of 75</span>
+      <span class="row"><span class="mono muted" id="timer" aria-label="Elapsed time">00:00</span><span class="mono" id="answered">0 answered</span></span>
+    </div>
+    <div class="progress" style="margin-top:10px"><i id="bar"></i></div>
+  </div>
+  <div class="card" id="qcard" style="margin-top:16px">
+    <div class="area" id="qarea"></div>
+    <div class="qtext" id="qtext"></div>
+    <div class="opts" id="opts" role="radiogroup" aria-labelledby="qtext"></div>
+    <div class="explain hidden" id="explain"></div>
+    <div class="nav">
+      <button id="btn-prev">Previous</button>
+      <button id="btn-flag">Flag for review</button>
+      <button class="primary" id="btn-next">Next</button>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="topbar" style="margin-bottom:10px"><h2>All questions</h2><button class="primary" id="btn-submit">Submit exam</button></div>
+    <div class="palette" id="palette"></div>
+    <div class="legend"><span class="l1">Answered</span><span class="l2">Flagged</span></div>
+  </div>
+</section>
+
+<section id="confirm" class="card hidden" role="dialog" aria-labelledby="t-confirm">
+  <h2 id="t-confirm">Submit the exam?</h2>
+  <p id="confirm-text"></p>
+  <div class="row"><button class="primary" id="btn-confirm">Submit and see my score</button><button id="btn-cancel">Keep working</button></div>
+</section>
+
+<section id="results" class="hidden">
+  <div class="card">
+    <h1>Your result</h1>
+    <div class="score" style="margin-top:12px">
+      <div class="big" id="r-score">0/75</div>
+      <div><div class="mono" id="r-pct"></div><div id="r-pills" class="row" style="margin-top:6px"></div></div>
+    </div>
+    <p id="r-advice" style="margin-bottom:0"></p>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h2>Score by syllabus area</h2>
+    <p class="muted" style="margin-top:4px">Reread the Guide sections for any area under 80%.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Area</th><th class="num">Correct</th><th class="num">%</th><th style="width:30%"></th></tr></thead>
+      <tbody id="r-areas"></tbody>
+    </table></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="topbar"><h2>Review answers</h2>
+      <label class="row" for="wrong-only"><input type="checkbox" id="wrong-only" checked> Wrong answers only</label>
+    </div>
+    <div class="review" id="r-list" style="margin-top:12px"></div>
+  </div>
+  <div class="row" style="margin-top:16px">
+    <button class="primary" id="btn-retake">Take the exam again</button>
+    <button id="btn-home">Back to start</button>
+  </div>
+</section>
+
+</main>
+<script>
+const QUESTIONS = [{"area": "Development sector", "q": "According to the Project DPro Guide, a project is best defined as:", "o": ["A temporary endeavor undertaken to create a unique product, service, or result", "An ongoing set of operations that keeps an organization running", "A group of related projects managed together to achieve strategic benefits", "A long-term commitment of an organization's resources to a sector strategy"], "e": "The Guide defines a project as a temporary endeavor undertaken to create a unique product, service, or result. A group of related projects is a program.", "r": "1.2.1"}, {"area": "Development sector", "q": "A winterization project must distribute blankets and winter clothing before the winter season begins. How should its time constraint be classified?", "o": ["Inflexible", "Adaptable / may concede", "Negotiable after the project launch", "Secondary to the scope constraint"], "e": "When any change in a constraint harms the project, it is inflexible. The Guide uses exactly this winterization example for an inflexible time constraint.", "r": "1.2.2"}, {"area": "Development sector", "q": "Exchange rate losses mean a project can buy fewer NFI kits than planned, and the donor does not allow budget changes. Which constraint concedes?", "o": ["Scope: fewer kits are delivered", "Budget: the donor must add funds", "Time: the project must be extended", "None: the triangle constraints are independent"], "e": "The budget is inflexible, so the scope (the number of NFI kits) concedes. The three constraints are interdependent.", "r": "1.2.2"}, {"area": "Development sector", "q": "The \"Do No Harm\" principle is part of which form of accountability?", "o": ["Downward accountability", "Upward accountability", "Horizontal accountability", "Financial accountability"], "e": "Downward accountability is to the communities and people served. Do No Harm, part of a conflict-sensitive approach, is included within it.", "r": "1.1.4"}, {"area": "Development sector", "q": "Who typically manages an organization's portfolio?", "o": ["A Country Director or high-level executive team", "The project manager of the largest project", "The MEAL focal point of the country office", "The director of the lead implementing partner"], "e": "Because of their complexity and strategic focus, portfolios are typically managed by a Country Director, or at regional or global level by a high-level executive team.", "r": "1.2.3"}, {"area": "Development sector", "q": "A project manager is excellent at schedules, budgets and donor reports, but team members feel he only talks to them to point out mistakes, and turnover is delaying the project. Which competency area most needs development?", "o": ["Leadership/Interpersonal (the art)", "PM Technical (the science of planning and control)", "Development Sector Specific (context and partners)", "Personal/Self-Management (time and organization)"], "e": "This is the Guide's David story. His technical (science) skills are strong, but the people skills of the art of project management (motivating, communicating, a constructive team environment) are missing.", "r": "1.2.6"}, {"area": "Phase model and gates", "q": "Which statement best describes the phases of the Project DPro Phase Model (2nd edition)?", "o": ["There are five phases that overlap and interact with one another", "There are five phases that must be completed strictly one after another", "There are six phases, including Monitoring, Evaluation and Control", "There are four phases, with MEAL as a separate fifth phase"], "e": "The model has five phases (Identification and Definition, Set Up, Planning, Implementation, Closure). They do not run strictly in sequence: they interact.", "r": "1.2.8"}, {"area": "Phase model and gates", "q": "What happened to the Monitoring, Evaluation and Control (MEC) phase of the 1st edition?", "o": ["Expanded to MEAL and built into every phase", "Kept as a separate phase between Implementation and Closure", "Renamed and merged into the Project Implementation phase", "Removed, because monitoring is the donor's responsibility"], "e": "MEC was expanded to include Accountability and Learning (MEAL) and is now incorporated into each phase rather than being a phase of its own.", "r": "1.2.8, Section 5"}, {"area": "Phase model and gates", "q": "Which question should a project team ask at every decision gate?", "o": ["Are we still doing the right project, in the right way?", "Have all activities been completed on time and on budget?", "Has the full budget for this phase been spent as planned?", "Who should be held responsible for the delays so far?"], "e": "Decision gates are checkpoints to justify continuing as is, changing, or stopping. The Guide frames this as \"are we still doing the right project and are we still doing it in the right way?\"", "r": "1.2.9"}, {"area": "Phase model and gates", "q": "A decision gate process during Identification and Definition mainly helps an organization avoid which scenario?", "o": ["Perfected but rejected", "Scope creep during implementation", "Crashing the schedule", "Gold-plating the deliverables"], "e": "\"Perfected but rejected\" is when an organization spends heavily on identification and definition, and the project then lacks support from key stakeholders and is not approved.", "r": "1.2.9"}, {"area": "Phase model and gates", "q": "At a decision gate in year two, the team concludes the intervention is no longer necessary and closes the project. According to the Guide, this is:", "o": ["Not necessarily a failure if the project is no longer needed", "Always a sign of weak identification and definition work", "Only allowed at an emergency gate, never at a regular gate", "Not allowed: regular gates can only continue or modify a project"], "e": "Regular gates let stakeholders continue, modify or terminate a project. The Guide states that termination is not necessarily a failure if the intervention is no longer appropriate, feasible or necessary.", "r": "1.2.9"}, {"area": "Phase model and gates", "q": "What is an Emergency Decision Gate?", "o": ["A fast decision to continue or close as the context changes", "A planned gate held at the end of every implementation stage", "The yearly review held at the start of each implementation year", "The final gate before the project formally enters Closure"], "e": "Emergency decision gates are used when a decision must be made rapidly about continuing or closing, for example when conflict puts the project or team at risk. The decision is usually above the PM's tolerance.", "r": "1.2.9"}, {"area": "Phase model and gates", "q": "In the Delta River project, government authorization has not yet been obtained, but the team moves into the Set Up phase anyway. What is the main risk?", "o": ["Spending resources without formal approval to proceed", "The donor will automatically cancel the whole grant", "The logframe becomes invalid and must be fully rewritten", "None, because internal decision gates can stay open"], "e": "Internal decision gates must be closed before moving to the next phase. An open gate means the team may invest resources without formal approval.", "r": "1.2.9"}, {"area": "Identification and Definition", "q": "Why is the Identification and Definition phase the most cost-effective time to make changes to a project?", "o": ["Changes cost less before staff and budgets are committed", "Donors pay the full cost of any changes made in this phase", "Stakeholders are not yet involved, so no agreement is needed", "The logframe is already final, so changes are simple to make"], "e": "The easiest time to change a project is at the beginning. Once staff are hired, activities begin and budgets are allocated, the cost of change rises (Figure 15).", "r": "2.1.1"}, {"area": "Identification and Definition", "q": "Which of the following is NOT a key output of the Identification and Definition phase?", "o": ["Detailed implementation plan", "Stakeholder analysis", "Project logical frame", "High-level project charter"], "e": "The four key outputs are stakeholder analysis, project logical frame, project proposal and high-level project charter. The implementation plan is the key output of Planning.", "r": "2.1.2"}, {"area": "Identification and Definition", "q": "Many organizations recommend that the FIRST round of data collection relies on:", "o": ["Secondary data", "Primary quantitative household surveys", "Primary qualitative focus groups", "Anthropometric measurements"], "e": "Secondary data is cost-effective and should be accessed first. Later rounds use primary data to fill the gaps.", "r": "2.1.6"}, {"area": "Identification and Definition", "q": "Focus groups, key informant interviews and ranking exercises are examples of:", "o": ["Primary qualitative data collection", "Primary quantitative data collection", "Secondary data collection", "Parametric estimating"], "e": "Table 8 lists brainstorming, focus groups, historical narratives, timelines, locality mapping, semi-structured and key informant interviews, and ranking exercises as primary qualitative methods.", "r": "2.1.6"}, {"area": "Identification and Definition", "q": "A sanitation expert reports that fecal matter in household water is above the level set by the Ministry of Health. Which of Bradshaw's categories of need is this?", "o": ["Normative need", "Felt need", "Expressed need", "Comparative need"], "e": "Normative needs compare the current situation with professional or expert standards.", "r": "2.1.6"}, {"area": "Identification and Definition", "q": "Families have never complained about sanitation, but they have started digging garbage pits to dispose of household refuse. Which category of need does this show?", "o": ["Expressed need", "Felt need", "Normative need", "Comparative need"], "e": "Expressed needs are seen through what the community does (its actions), even when nobody has stated the need publicly.", "r": "2.1.6"}, {"area": "Identification and Definition", "q": "What is the purpose of data triangulation?", "o": ["To validate data by cross-checking it from more than two sources", "To reduce the number of stakeholders consulted in the assessment", "To rank the identified risks by their probability and impact", "To choose three alternative interventions for the objectives tree"], "e": "Triangulation limits subjectivity and increases confidence in results through cross-verification from more than two sources. With three methods, at least two should reinforce each other.", "r": "2.1.6"}, {"area": "Identification and Definition", "q": "The local municipality is expected to maintain the latrines after the project ends. In the Guide's stakeholder categories, the municipality is a:", "o": ["Sustainer", "User", "Dependent", "Provider"], "e": "Sustainers are groups responsible for supporting the product or service after the project is completed. The Delta River municipality is the Guide's own example.", "r": "2.1.6"}, {"area": "Identification and Definition", "q": "Another project in your organization needs one of your project's deliverables to complete its own work. Which stakeholder category is it?", "o": ["Dependent", "Influencer", "User", "Governance"], "e": "Dependents want something from the project other than the planned final product or service. Typically they are other projects or functional units that need a deliverable.", "r": "2.1.6"}, {"area": "Identification and Definition", "q": "In a stakeholder Venn diagram, what does the SIZE of each circle indicate?", "o": ["The stakeholder's relative power or influence", "The number of people in the stakeholder group", "The stakeholder's level of interest in the project", "The amount of funding the stakeholder provides"], "e": "Circle size shows relative power or influence. The spatial distance between circles shows the strength of the working relationship. The diagram is drawn from one stakeholder's perspective.", "r": "2.1.6"}, {"area": "Identification and Definition", "q": "When building a problem tree, where are the causes and effects placed?", "o": ["Causes below the core problem, effects above it", "Effects below the core problem, causes above it", "Causes and effects side by side at the same level", "Objectives below the core problem, solutions above it"], "e": "Problems that directly cause the starter problem go below (causes); its direct effects go above. The guiding question is \"What causes that?\"", "r": "2.1.6"}, {"area": "Identification and Definition", "q": "At which logical framework levels does the project manager have primary responsibility?", "o": ["Activities and outputs", "Outputs and outcomes", "Outcomes and the goal", "Activities and outcomes"], "e": "The PM's primary responsibility is at the activity and output levels, because that is what they control at project level.", "r": "2.1.6"}, {"area": "Identification and Definition", "q": "In the Delta River logframe, \"Improved access to quality latrines for the Delta River community\" is stated at which level?", "o": ["Outcome", "Goal", "Output", "Activity"], "e": "The goal is improved river water quality; the outcome is improved access to quality latrines; outputs include latrines constructed and people trained.", "r": "2.1.6 (Table 13)"}, {"area": "Identification and Definition", "q": "In the logical framework, assumptions are best described as:", "o": ["Conditions outside the project's control that must hold true", "Measures that describe the change achieved at each level", "The sources of the data used to measure each indicator", "Tasks the project team commits to complete internally"], "e": "Assumptions complete the horizontal logic: if the outputs are delivered AND the assumptions hold true, then the outcomes follow. Indicators measure change; means of verification are the data sources.", "r": "2.1.6"}, {"area": "Identification and Definition", "q": "For an indicator to measure change, it must have:", "o": ["A baseline set at or near the start", "An assumption at the same level", "An independent external evaluator", "A donor-approved budget line"], "e": "An indicator needs a baseline as its initial reference point, and performance is measured against a target.", "r": "2.1.6"}, {"area": "Identification and Definition", "q": "Which three components make up supply chain management in the Project DPro?", "o": ["Procurement, logistics and asset management", "Procurement, finance and human resource management", "Logistics, warehousing and transport management", "Purchasing, contracting and audit management"], "e": "The Guide defines three supply chain components: procurement, logistics and asset management.", "r": "2.1.6"}, {"area": "Set Up", "q": "In which phase is the project officially authorized?", "o": ["Project Set Up", "Identification and Definition", "Project Planning", "Project Implementation"], "e": "During Set Up the project is officially authorized, its parameters are defined and communicated, and the high-level governance structure is established.", "r": "1.2.8, 2.2.1"}, {"area": "Set Up", "q": "How does the Project DPro define risk?", "o": ["The potential effect of uncertainty on project activities, outputs and outcomes", "A problem currently affecting the project that must be resolved immediately", "A variance between planned and actual cost", "A negative event that has already occurred"], "e": "Risk is the potential effect of uncertainty on the project. A problem that has already occurred is an issue (a risk that has become reality).", "r": "2.2.6"}, {"area": "Set Up", "q": "What is the correct order of the comprehensive risk management process?", "o": ["Identify, categorize, assess, respond, monitor and control", "Identify, assess, categorize, monitor and control, respond", "Categorize, identify, respond, assess, monitor and control", "Assess, identify, categorize, respond, monitor and control"], "e": "The five steps are identifying, categorizing, assessing impact and probability, developing response strategies, and monitoring and controlling.", "r": "2.2.6"}, {"area": "Set Up", "q": "To reduce the impact of potential theft, a project only keeps the commodities needed for the next seven days in its warehouse. Which risk response is this?", "o": ["Mitigation", "Avoidance", "Transference", "Acceptance"], "e": "Mitigation reduces the probability and/or the impact of a risk. This is the Guide's own example of reducing impact.", "r": "2.2.6"}, {"area": "Set Up", "q": "A project buys insurance for its vehicles against damage and loss. Which risk response is this?", "o": ["Transference", "Mitigation", "Avoidance", "Acceptance and monitoring"], "e": "Transference shifts or shares the risk with another party. Insurance is the most common example.", "r": "2.2.6"}, {"area": "Set Up", "q": "Which of the following is NOT an acceptable risk response?", "o": ["Ignoring the risk", "Accepting the risk and monitoring it", "Transferring the risk to another party", "Avoiding the risky part of the scope"], "e": "Ignoring a risk is never acceptable. Acceptance is a reasoned decision that is followed by continuous monitoring.", "r": "2.2.6"}, {"area": "Set Up", "q": "At a minimum, a risk register should include:", "o": ["Risk, status, probability and impact, response, owner", "Risk, donor, affected budget line and deadline", "Only the risks that have already become issues", "Risk score, category and the project manager's name"], "e": "The Guide says to include, at minimum, the risk, status, probability and impact, response strategy and risk response owner.", "r": "2.2.6"}, {"area": "Set Up", "q": "Your tolerance allows changes of up to 5% of any budget line. An influx of displaced people means an activity needs 12% more budget. What should you do?", "o": ["Escalate it to the next level of the governance structure", "Approve the increase, since it serves more beneficiaries", "Move funds from other budget lines without reporting it", "Refuse to serve the additional displaced beneficiaries"], "e": "The change exceeds your tolerance, so it must be escalated to governance. A 2% change within tolerance could be decided by you, then documented and communicated.", "r": "2.2.6"}, {"area": "Set Up", "q": "Which of the following is NOT one of the six project tolerance areas in the Guide?", "o": ["Morale", "Benefits", "Quality", "Risk"], "e": "The six tolerance areas are time, cost, scope, risk, quality and benefits.", "r": "2.2.6"}, {"area": "Set Up", "q": "What is the simplest and most common project governance structure?", "o": ["A single project sponsor", "A steering committee with five members", "A board with donor, community and government representatives", "A donor consortium"], "e": "The simplest and most common structure is one individual, the project sponsor. It is simple but often fails to represent multiple perspectives.", "r": "2.2.6"}, {"area": "Set Up", "q": "Which statement about decision-making on a project board is correct?", "o": ["Members do not all hold equal authority on every decision", "Every decision is made by a simple majority vote of members", "Every decision requires the full consensus of all members", "The project manager holds the casting vote on all decisions"], "e": "A board is not a simple democracy. All members may be consulted, but ultimate authority for some decisions rests with one member or a small group.", "r": "2.2.6"}, {"area": "Set Up", "q": "Which of the following is a main aim of the Project Charter?", "o": ["To authorize the start of activities and the use of resources", "To sell the project to potential donors and funders", "To list every activity with its duration and dependencies", "To record the lessons learned at the end of the project"], "e": "The charter officially authorizes the start of activities and use of resources, ensures shared understanding of the project's parameters, and documents a shared commitment. It is signed by the governance body.", "r": "2.2.6"}, {"area": "Planning", "q": "What is the key output of the Project Planning phase?", "o": ["The implementation plan", "The signed project charter", "The logical framework", "The approved project proposal"], "e": "Planning produces the implementation plan (DIP/PIP), which may include schedule, risk, MEAL, communication and stakeholder engagement, RACI, supply chain and HR plans.", "r": "2.3.2"}, {"area": "Planning", "q": "Which statement correctly contrasts a project proposal with a project implementation plan?", "o": ["A proposal seeks funding; a plan guides the team's delivery", "They are the same document, written for different donors", "A plan's format is set by the donor; a proposal's by the team", "A proposal is usually far more detailed than a plan"], "e": "Proposals \"sell\" the project to funders, in a donor-set format with limited detail. The implementation plan is set by the team, is detailed, and guides implementation.", "r": "2.3.1 (Table 22)"}, {"area": "Planning", "q": "What is the correct order of the five schedule planning steps?", "o": ["Activity definition, activity sequencing, activity resource estimating, activity duration estimating, schedule development", "Activity definition, activity duration estimating, activity sequencing, activity resource estimating, schedule development", "Activity sequencing, activity definition, activity resource estimating, schedule development, activity duration estimating", "Schedule development, activity definition, activity sequencing, activity duration estimating, activity resource estimating"], "e": "WBS (definition), then network diagram (sequencing), then resource estimating, then duration estimating (critical path), then the Gantt chart (schedule development). Resources come before durations.", "r": "2.3.6 (Figure 28)"}, {"area": "Planning", "q": "According to the Guide, project scope includes:", "o": ["All direct and indirect work needed to deliver the product", "Only the outputs, outcome and goal agreed with the donor", "Only the activities that are listed in the logframe", "Only the work that is funded directly by the donor"], "e": "Project scope is HOW the deliverables are produced: all direct and indirect work. Product scope is WHAT is delivered (outputs, outcome, goal).", "r": "2.3.6 (Table 23)"}, {"area": "Planning", "q": "Which of the following is an example of INDIRECT work that should still be included in the WBS?", "o": ["Selecting and hiring the project team", "Digging the holes for all the latrines", "Building the latrine superstructure", "Installing the latrine cap on site"], "e": "Indirect work supports the project without being part of its direct work: baseline surveys, monitoring tasks, hiring the team, setting up IT systems, capacity training.", "r": "2.3.6"}, {"area": "Planning", "q": "Which statement about the Work Breakdown Structure (WBS) is correct?", "o": ["All work packages in a hierarchy, not yet sequenced", "The sequence and dependencies between all activities", "The duration of each activity shown on a timeline", "The RACI roles assigned to each task and deliverable"], "e": "The WBS is a hierarchical decomposition of the project's work. Sequencing comes later with the network diagram; durations go in the Gantt chart; roles go in the RACI.", "r": "2.3.6"}, {"area": "Planning", "q": "Why must activity resources be estimated BEFORE activity durations?", "o": ["Duration depends on the resources assigned to the activity", "Donors require resource estimates before any durations", "Resources never change once they have been estimated", "The Gantt chart cannot display resources, only durations"], "e": "Resources are a central factor in duration estimates: one person digging a hole takes longer than five, and a shovel is slower than a pneumatic drill.", "r": "2.3.6"}, {"area": "Planning", "q": "Which estimating technique asks the people who know the field reality to estimate tasks, which are then \"rolled up\" into a total, and is more likely to be accurate?", "o": ["Bottom-up estimating", "Top-down estimating", "Parametric estimating", "Analogous donor estimating"], "e": "Bottom-up estimates come from the people who will do the work. It involves more people and effort but is more likely to be accurate. Top-down starts from a global figure set by a small group of experts.", "r": "2.3.6"}, {"area": "Planning", "q": "What is the critical path?", "o": ["The longest path through the network; it sets the minimum duration", "The shortest path through the network; it sets the minimum duration", "The path with the most float, so it can absorb any delays", "The path made up of the project's most expensive tasks"], "e": "The critical path is the longest path between start and end; it determines the minimum project duration and has zero float.", "r": "2.3.6"}, {"area": "Planning", "q": "\"Procure latrine cap materials\" can be delayed by up to three days without delaying the project's completion date. These three days are called:", "o": ["Float (or slack)", "Crash duration", "Lead time", "Buffer stock days"], "e": "Float or slack is the time a task can be delayed without delaying project completion. Critical path tasks have zero float.", "r": "2.3.6"}, {"area": "Planning", "q": "Which statement correctly distinguishes monitoring from evaluation?", "o": ["Monitoring: continuous, activities and outputs. Evaluation: periodic, outcomes", "Monitoring: periodic, outcomes. Evaluation: continuous, activities and outputs", "Monitoring: by external consultants. Evaluation: by the project team", "Monitoring and evaluation are the same process under two names"], "e": "Monitoring tracks the operational work at activity and output level continuously. Evaluation is less frequent, often more formal, and explores outcomes and contribution to the goal.", "r": "2.3.6"}, {"area": "Planning", "q": "An evaluation conducted about a year after a project closes, to measure how far outcomes and impacts have been sustained through participant ownership, is a:", "o": ["Ex-post evaluation", "Real-time evaluation", "Final evaluation", "Baseline survey"], "e": "Ex-post evaluations (sometimes called sustainable impact evaluations) examine impact a defined time after completion.", "r": "2.3.6"}, {"area": "Planning", "q": "In a RACI matrix, how many people should be Accountable for each task or deliverable?", "o": ["Only one", "At least two, for segregation of duties", "As many as needed", "None, if the Responsible person signs off"], "e": "The Accountable person approves (signs off) the work of the Responsible person. There must be only one Accountable person for each task.", "r": "2.3.6"}, {"area": "Planning", "q": "How does stage planning work?", "o": ["Stage 1 is detailed; later stages stay high level until a gate", "Every stage is planned in full detail before implementation", "Stages are used only in humanitarian emergency projects", "Stages replace the need for any decision gates"], "e": "A detailed scope is developed for stage 1; later stages stay high level and are detailed as they approach, after a decision gate at the end of each stage.", "r": "2.3.6"}, {"area": "Implementation", "q": "Fast tracking a project schedule means:", "o": ["Doing in parallel activities that normally run in sequence", "Adding more resources to activities on the critical path", "Reducing the scope so the original deadline can be met", "Extending the deadline after getting donor approval"], "e": "Fast tracking does sequential activities in parallel, targeting the critical path first. In the latrine example, building caps while digging holes cut the path from 29 to 26 days.", "r": "2.4.6"}, {"area": "Implementation", "q": "A second digger is added to the hole-digging activity on the critical path to recover lost time. What is this technique, and what does the Guide warn about it?", "o": ["Crashing; doubling resources may not double productivity", "Fast tracking; it always halves the activity duration", "Crashing; it never increases the cost of the project", "Rolling-wave planning; it only works in emergencies"], "e": "Crashing adds resources to the critical path. The marginal productivity of extra resources is often lower (not enough room in the hole, not enough tools).", "r": "2.4.6"}, {"area": "Implementation", "q": "After three months, planned cumulative cost is 1,100 and actual cumulative cost is 1,300. Earned value analysis shows that 1,300 worth of work has been completed. What can you conclude?", "o": ["On budget for the work done, ahead of schedule", "About 18% over budget, but on schedule", "Under budget, but behind schedule", "Over budget, and also behind schedule"], "e": "The project spent 1,300 to get 1,300 of work done (on budget), and did 1,300 of work against 1,100 planned (about 18% ahead of schedule).", "r": "2.4.6"}, {"area": "Implementation", "q": "According to the earned value results table, what does it mean when a project is UNDER budget and BEHIND schedule?", "o": ["More data is needed", "The status is good", "The status is bad", "The project should be terminated"], "e": "Table 36 marks under budget plus behind schedule, and over budget plus ahead of schedule, as \"need more data\".", "r": "2.4.6"}, {"area": "Implementation", "q": "What is the correct sequence of the four basic issue management processes?", "o": ["Identification and tracking, analysis, communication, control", "Analysis, identification, control, communication", "Communication, identification, analysis, control", "Control, analysis, identification and tracking, communication"], "e": "The four processes are issue identification and tracking, issue analysis, issue communication and issue control.", "r": "2.4.6"}, {"area": "Implementation", "q": "Issue management is a collaborative team effort. Who is ultimately accountable for it?", "o": ["The project manager", "The team member closest to the work", "The project board", "The MEAL team"], "e": "People closest to the work often know best how to solve issues, but the project manager is ultimately accountable (only one person is accountable in a RACI).", "r": "2.4.6"}, {"area": "Implementation", "q": "Which are the four primary components of accountability described for the Implementation phase?", "o": ["Transparency, standardization, responsiveness, participation", "Transparency, efficiency, effectiveness and sustainability", "Upward, downward, horizontal and internal accountability", "Reporting, auditing, evaluation and organizational learning"], "e": "Accountability encompasses transparency, standardization, responsiveness and participation.", "r": "2.4.6"}, {"area": "Implementation", "q": "According to the Guide, any change to the project should be:", "o": ["Managed formally, analyzed, documented and communicated", "Approved verbally by the project manager to save time", "Avoided, because the implementation plan is a fixed baseline", "Decided by the field team and reported in the final report"], "e": "Plans are not static, but changes must be managed through a formal change process, analyzed for their implications, documented and communicated.", "r": "2.4.6"}, {"area": "Implementation", "q": "When the criteria for choosing a provider are complex, which procurement document should be used?", "o": ["A Request for Proposal (or Invitation for Bid) with a SOW", "A Request for Estimates judged mainly on price", "A petty cash voucher signed by the project manager", "A purchase order sent to the cheapest supplier on file"], "e": "Requests for Estimates suit simple, mainly price-based choices. When the criteria are complex, an RFP or IFB with a comprehensive statement of work (SOW) is used.", "r": "2.4.6"}, {"area": "Implementation", "q": "Which list gives the four elements of asset management during implementation?", "o": ["Recording, labeling, monitoring records, safeguarding", "Procurement, logistics, warehousing, and transport", "Purchasing, insuring, depreciating, and selling", "Requesting, approving, paying, and auditing assets"], "e": "Asset management includes recording assets, labeling them, monitoring and updating asset records (including physical counts), and safeguarding them.", "r": "2.4.6"}, {"area": "Closure", "q": "At the end of a project, the service continues under a local government entity. Which closure scenario is this?", "o": ["Handover", "Expansion", "Redesign", "Extension"], "e": "Handover means continuation of the product or service is handed over to a local partner (local NGO, INGO, community or government entity).", "r": "2.5.1 (Figure 45)"}, {"area": "Closure", "q": "Which statement about a no-cost extension is correct?", "o": ["It adds time at no cost to the donor, but still costs the organization", "It adds time and also brings extra funding from the donor", "It has no effect at all on the project's triple constraint", "It is decided by the project manager alone, without governance"], "e": "Salaries, facilities and resources still cost the organization. The impact on the triangle must be examined and governance must take part in the decision.", "r": "2.5.1"}, {"area": "Closure", "q": "Which check belongs to CONTRACT closure?", "o": ["Has the donor accepted the project deliverables?", "Have all payables to suppliers been paid?", "Have project personnel been released or reassigned?", "Are the project archives and files up to date?"], "e": "Contract closure: all contracts closed and the donor has accepted deliverables. Paying payables is financial closure; releasing staff and updating archives are administrative closure.", "r": "2.5.6"}, {"area": "Closure", "q": "What is the two-step process for verifying the project's scope at closure?", "o": ["The team cross-checks work against the plan; stakeholders accept it", "The donor audits the accounts; the board signs the updated charter", "The MEAL team runs the endline; the evaluator writes the report", "The PM writes the final report; the team holds a closing event"], "e": "First the implementation team cross-checks work against the plan. Then the team meets key stakeholders (donors, community groups) to review accomplishments, get documented acceptance, and confirm their satisfaction.", "r": "2.5.6"}, {"area": "Closure", "q": "Which best describes an After Action Review (AAR)?", "o": ["A quick, low-cost learning review of planned versus actual results", "A formal external evaluation of the project's outcomes and impact", "An audit of the project's financial records and supporting documents", "A review held a year after closure to measure sustained impact"], "e": "An AAR is simple, quick and versatile; it collects lessons without extensive resources. Formal outcome evaluations and ex-post evaluations are different tools.", "r": "2.5.6"}, {"area": "Principles", "q": "At closure, the governance structure receives and signs off the updated project charter. Which principle does this reflect most directly?", "o": ["Well-Governed", "Participatory", "Integrated", "Adaptive"], "e": "Under Well-Governed and Closure, the sponsor or board should receive and sign off the updated charter and other relevant documents.", "r": "3.1.6"}, {"area": "Principles", "q": "In Agile project management, as described under the Adaptive principle, which constraint is variable?", "o": ["Scope", "Time", "Cost", "None: all three are fixed"], "e": "In Agile, time is fixed (short iterations), cost is fixed, and scope is variable. Requirements are prioritized as must, should, could and won't have.", "r": "3.5.4"}, {"area": "Principles", "q": "Which statement about the Participatory principle is correct?", "o": ["Right stakeholders at the right time; not consensus on every decision", "All stakeholders must be consulted on every project decision", "Decisions are taken by committee vote to ensure fairness to all", "Participation is only needed during Identification and Definition"], "e": "The Guide says participation does not mean consulting all stakeholders on every decision or deciding by consensus. The PM involves different stakeholders at appropriate times throughout the project.", "r": "3.2.1"}, {"area": "Principles", "q": "Under the Comprehensive principle, what must the implementation plan include?", "o": ["Both direct and indirect work, such as procurement", "Only the activities already listed in the logframe", "Only the work that implementing partners will do", "Only the activities the donor has agreed to fund"], "e": "Comprehensive project management applies equal rigor to every phase and ensures all direct and indirect work is planned. Missing indirect work often causes delays.", "r": "3.3.4"}, {"area": "Adapting", "q": "A project's budget is in US dollars but most spending is in local currency. What does the Guide advise the project manager to do?", "o": ["Use one currency for budget and spending, at the actual exchange rate", "Cut activities whenever an exchange rate loss is reported to you", "Leave every currency decision entirely to the finance department", "Use a fixed book rate throughout, so calculations stay simple"], "e": "Under systems considerations, the PM should insist on the same currency for budget and expenditure where possible, and if the currency is non-negotiable, apply the actual exchange rate rather than an easy book rate.", "r": "4.2"}];
+const LETTERS = ["A","B","C","D"];
+const KEY = "dpro-mock-v1";
+let S = null; // state
+let tick = null;
+
+function store(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
+function loadHist(){ try{ return JSON.parse(localStorage.getItem(KEY+"-hist")) || []; }catch(e){ return []; } }
+function saveHist(h){ try{ localStorage.setItem(KEY+"-hist", JSON.stringify(h)); }catch(e){} }
+
+function shuffled(n){ const a=[...Array(n).keys()]; for(let i=n-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+const $ = id => document.getElementById(id);
+function show(id){ ["start","exam","confirm","results"].forEach(s=>$(s).classList.toggle("hidden", s!==id)); window.scrollTo(0,0); }
+function fmt(sec){ const m=Math.floor(sec/60), s=sec%60; return String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"); }
+
+function newAttempt(){
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  const order = $("shuffle").checked ? shuffled(QUESTIONS.length) : [...Array(QUESTIONS.length).keys()];
+  S = { mode, order, opt: order.map(()=>shuffled(4)), ans: order.map(()=>null), flag: order.map(()=>false), cur:0, elapsed:0, done:false };
+  store(); startExam();
+}
+function startExam(){
+  show("exam"); render();
+  clearInterval(tick);
+  tick = setInterval(()=>{ S.elapsed++; $("timer").textContent = fmt(S.elapsed); if(S.elapsed%10===0) store(); }, 1000);
+}
+function render(){
+  const i = S.cur, q = QUESTIONS[S.order[i]], perm = S.opt[i], chosen = S.ans[i];
+  const reveal = S.mode==="practice" && chosen!==null;
+  $("counter").textContent = `Question ${i+1} of ${S.order.length}`;
+  $("timer").textContent = fmt(S.elapsed);
+  const n = S.ans.filter(a=>a!==null).length;
+  $("answered").textContent = `${n} answered`;
+  $("bar").style.width = (n/S.order.length*100)+"%";
+  $("qarea").textContent = q.area;
+  $("qtext").textContent = q.q;
+  const box = $("opts"); box.innerHTML = "";
+  perm.forEach((orig, k)=>{
+    const lab = document.createElement("label");
+    lab.className = "opt";
+    const id = `o${i}_${k}`;
+    lab.htmlFor = id;
+    const inp = document.createElement("input");
+    inp.type="radio"; inp.name="opt"; inp.id=id; inp.value=k; inp.checked = chosen===k;
+    inp.disabled = reveal;
+    inp.addEventListener("change", ()=>{ choose(k); });
+    const key = document.createElement("span"); key.className="key"; key.textContent = LETTERS[k];
+    const txt = document.createElement("span"); txt.textContent = q.o[orig];
+    lab.append(inp,key,txt);
+    if(reveal){ if(orig===0) lab.classList.add("right"); else if(chosen===k) lab.classList.add("wrong"); }
+    else if(chosen===k) lab.classList.add("sel");
+    box.appendChild(lab);
+  });
+  const ex = $("explain");
+  if(reveal){
+    const ok = perm[chosen]===0;
+    ex.innerHTML = ""; const b=document.createElement("b"); b.textContent = ok ? "Correct." : `Not quite. The answer is ${LETTERS[perm.indexOf(0)]}.`;
+    const t=document.createElement("span"); t.textContent = " " + q.e + " (Guide " + q.r + ")";
+    ex.append(b,t); ex.classList.remove("hidden");
+  } else ex.classList.add("hidden");
+  $("btn-prev").disabled = i===0;
+  $("btn-next").textContent = i===S.order.length-1 ? "Finish" : "Next";
+  $("btn-flag").textContent = S.flag[i] ? "Remove flag" : "Flag for review";
+  renderPalette();
+}
+function renderPalette(){
+  const p = $("palette"); p.innerHTML="";
+  S.order.forEach((_,i)=>{
+    const b=document.createElement("button");
+    b.textContent=i+1; b.setAttribute("aria-label", `Question ${i+1}${S.ans[i]!==null?", answered":""}${S.flag[i]?", flagged":""}`);
+    if(S.ans[i]!==null) b.classList.add("ans");
+    if(S.flag[i]) b.classList.add("flg");
+    if(i===S.cur) b.classList.add("cur");
+    b.addEventListener("click", ()=>{ S.cur=i; store(); render(); $("qcard").scrollIntoView({block:"start"}); });
+    p.appendChild(b);
+  });
+}
+function choose(k){ S.ans[S.cur]=k; store(); render(); }
+function askSubmit(){
+  const blank = S.ans.filter(a=>a===null).length, flagged = S.flag.filter(Boolean).length;
+  let t = blank ? `You have ${blank} unanswered question${blank>1?"s":""}. There is no negative marking, so answer every question before you submit.` : "All questions are answered.";
+  if(flagged) t += ` ${flagged} question${flagged>1?"s are":" is"} still flagged for review.`;
+  $("confirm-text").textContent = t;
+  show("confirm");
+}
+function submit(){
+  clearInterval(tick); S.done=true; store();
+  const total = S.order.length;
+  let correct=0; const areas={};
+  S.order.forEach((qi,i)=>{
+    const q=QUESTIONS[qi]; const ok = S.ans[i]!==null && S.opt[i][S.ans[i]]===0;
+    if(ok) correct++;
+    areas[q.area] = areas[q.area] || {c:0,n:0}; areas[q.area].n++; if(ok) areas[q.area].c++;
+  });
+  const pct = Math.round(correct/total*100);
+  const hist = loadHist(); hist.push({d:new Date().toISOString().slice(0,10), c:correct, mode:S.mode}); saveHist(hist.slice(-20));
+  $("r-score").textContent = `${correct}/${total}`;
+  $("r-pct").textContent = `${pct}% · time ${fmt(S.elapsed)} · ${S.mode==="exam"?"exam mode":"practice mode"}`;
+  const pills = $("r-pills"); pills.innerHTML="";
+  const mk=(c,t)=>{const s=document.createElement("span"); s.className="pill "+c; s.textContent=t; pills.appendChild(s);};
+  mk(correct>=49?"ok":"bad", correct>=49?"Pass mark reached (49)":`Below pass mark: ${49-correct} short`);
+  mk(correct>=60?"ok":"flag", correct>=60?"80% target reached":`${60-correct} short of 80%`);
+  $("r-advice").textContent = correct>=64 ? "Ready range. Score 85% or more twice in exam mode, then book the exam."
+    : correct>=60 ? "On target, with a thin margin. Review your wrong answers and the weakest area, then retake in a few days."
+    : correct>=49 ? "Passing, but below your 80% goal. Work through the weakest areas below in the Guide, then retake."
+    : "Not yet passing. Study the areas below 65% in the Guide and the study guide, then retake in practice mode first.";
+  const tb=$("r-areas"); tb.innerHTML="";
+  Object.entries(areas).sort((a,b)=>a[1].c/a[1].n - b[1].c/b[1].n).forEach(([name,v])=>{
+    const p=Math.round(v.c/v.n*100); const tr=document.createElement("tr");
+    const color = p>=80?"var(--ok)":p>=65?"var(--flag)":"var(--bad)";
+    tr.innerHTML = `<td></td><td class="num">${v.c}/${v.n}</td><td class="num">${p}</td><td><div class="bar"><i style="width:${p}%;background:${color}"></i></div></td>`;
+    tr.firstChild.textContent = name; tb.appendChild(tr);
+  });
+  renderReview(); show("results");
+}
+function renderReview(){
+  const wrongOnly = $("wrong-only").checked, list=$("r-list"); list.innerHTML="";
+  let shown=0;
+  S.order.forEach((qi,i)=>{
+    const q=QUESTIONS[qi], perm=S.opt[i], a=S.ans[i], ok = a!==null && perm[a]===0;
+    if(wrongOnly && ok) return; shown++;
+    const d=document.createElement("div"); d.className="ritem";
+    d.style.borderColor = ok?"var(--ok)":"var(--bad)";
+    const head=document.createElement("div"); head.className="head";
+    const h1=document.createElement("span"); h1.textContent=`Q${i+1} · ${q.area}`;
+    const h2=document.createElement("span"); h2.className="pill "+(ok?"ok":"bad"); h2.textContent= ok?"Correct":(a===null?"Not answered":"Wrong");
+    head.append(h1,h2);
+    const qp=document.createElement("p"); qp.style.fontWeight="500"; qp.textContent=q.q;
+    const yours=document.createElement("p"); yours.className="ans-line";
+    yours.textContent = "Your answer: " + (a===null ? "none" : `${LETTERS[a]}. ${q.o[perm[a]]}`);
+    const right=document.createElement("p"); right.className="ans-line";
+    right.textContent = `Correct answer: ${LETTERS[perm.indexOf(0)]}. ${q.o[0]}`;
+    const ex=document.createElement("p"); ex.className="muted"; ex.style.fontSize=".92rem";
+    ex.textContent = q.e + " Reread Guide " + q.r + ".";
+    d.append(head,qp); if(!ok) d.append(yours); d.append(right,ex);
+    list.appendChild(d);
+  });
+  if(!shown){ const p=document.createElement("p"); p.textContent="No wrong answers to review. Untick the box to see every question."; list.appendChild(p); }
+}
+function home(){
+  clearInterval(tick); show("start");
+  const s=load(); $("btn-resume").classList.toggle("hidden", !(s && !s.done && s.ans));
+  const h=loadHist();
+  $("last").textContent = h.length ? "Recent scores: " + h.slice(-5).map(x=>`${x.c}/75 (${x.d})`).join(", ") : "";
+}
+
+$("btn-start").addEventListener("click", newAttempt);
+$("btn-resume").addEventListener("click", ()=>{ S=load(); startExam(); });
+$("btn-prev").addEventListener("click", ()=>{ if(S.cur>0){ S.cur--; store(); render(); } });
+$("btn-next").addEventListener("click", ()=>{ if(S.cur<S.order.length-1){ S.cur++; store(); render(); } else askSubmit(); });
+$("btn-flag").addEventListener("click", ()=>{ S.flag[S.cur]=!S.flag[S.cur]; store(); render(); });
+$("btn-submit").addEventListener("click", askSubmit);
+$("btn-confirm").addEventListener("click", submit);
+$("btn-cancel").addEventListener("click", ()=>{ show("exam"); render(); });
+$("wrong-only").addEventListener("change", renderReview);
+$("btn-retake").addEventListener("click", ()=>{ show("start"); newAttempt(); });
+$("btn-home").addEventListener("click", home);
+home();
+</script>
+</body>
+</html>
